@@ -1,15 +1,28 @@
 #!/bin/bash
+# Script name: pubkeys.sh
+# Updated for Solana helium_gateway 1.0.0
 
-data=$(sudo docker exec miner miner print_keys)
-
-if [[ $data =~ animal_name,\"([^\"]*) ]]; then
-  match="${BASH_REMATCH[1]}"
+if [ $EUID -ne 0 ]; then
+   echo "This script must be run as root - use sudo in front i.e. sudo ${0}" 
+   exit 1
 fi
 
-echo "${match//-/ }" > /var/dashboard/statuses/animal_name
+source /etc/monitor-scripts/dashboard.ini
 
-if [[ $data =~ pubkey,\"([^\"]*) ]]; then
-  match="${BASH_REMATCH[1]}"
+name_pat='\"name\":\ \"([a-z]*-[a-z]*-[a-z]*)\".*$'
+key_pat='\"key\":\ \"([A-Za-z0-9]*)\".*$'
+
+data=$(/etc/helium_gateway/helium_gateway key info)
+
+match='amnesiac'
+if [[ "$data" =~ $name_pat ]]; then
+  match="${BASH_REMATCH[1]}" 
 fi
 
-echo $match > /var/dashboard/statuses/pubkey
+echo "${match}" | tr '-' ' ' > "$CFG_FN_ANIMAL_NAME"
+
+match='unknown-key'
+if [[ "$data" =~ $key_pat ]]; then
+  match="${BASH_REMATCH[1]}"
+fi
+echo $match > "$CFG_FN_PUBKEY"
